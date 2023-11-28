@@ -1,7 +1,7 @@
 # %%
 """
 ==============================================================
-Attempt to plot ROC curves from ATM/ImCoh classification from MEG data in the source space
+Plot ROC curves from ATM/ImCoh classification across CV splits
 ===============================================================
 
 """
@@ -9,52 +9,35 @@ Attempt to plot ROC curves from ATM/ImCoh classification from MEG data in the so
 #
 # License: BSD (3-clause)
 
+import gzip
+
+import mat73
+import matplotlib.pyplot as plt
+
+import numpy as np
 
 import os.path as osp
 import os
 
-import scipy.stats
-import seaborn as sns
-import matplotlib.pyplot as plt
-from mne_connectivity.viz import plot_connectivity_circle
-from mne_connectivity.viz.circle import _plot_connectivity_circle
-from mne.viz import circular_layout#, plot_connectivity_circle
-
 import pandas as pd
-import mat73
-
-from tqdm import tqdm
-import gzip
 import pickle
-import mne
-from mne.connectivity import spectral_connectivity
-from mne import create_info, EpochsArray
-from mne.decoding import CSP as CSP_MNE
-from mne.connectivity import spectral_connectivity
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-
+from scipy.stats import zscore
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import ShuffleSplit, cross_val_score
-from sklearn.model_selection import cross_validate
-from sklearn import metrics, model_selection
-from sklearn.metrics import DetCurveDisplay, RocCurveDisplay, accuracy_score, f1_score, roc_auc_score, precision_score, recall_score
-
-import numpy as np
-from scipy.stats import zscore
-from moabb.paradigms import MotorImagery
+from sklearn.model_selection import ShuffleSplit
+from sklearn import model_selection
+from sklearn.metrics import DetCurveDisplay, RocCurveDisplay
 
 # to compute PLV estimations for each trial
-from Scripts.py_viz.fc_pipeline import FunctionalTransformer
+from Analysis.fc_pipeline import FunctionalTransformer
 
-# %%
-if os.path.basename(os.getcwd()) == "Fenicotteri-equilibristi":
+# %% to be adapted
+if os.path.basename(os.getcwd()) == "NeuronalAvalanches_TemporalLobeEpilepsy_EEG":
     os.chdir("Database/1_Clinical/Epilepsy_GMD/")
 if os.path.basename(os.getcwd()) == "py_viz":
-    os.chdir("/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Database/1_Clinical/Epilepsy_GMD")
+    os.chdir("/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD")
 basedir = os.getcwd()
 
 path_csv_root = os.getcwd() + '/1_Dataset-csv/'
@@ -114,7 +97,7 @@ def find_avalanches(data, thresh=3, val_duration=2):
     return (aout, min_size, max_size, list_avalanches_bysize, mat)
 
 
-#%% retrive optimal parameters for ATMs
+#%% retrieve optimal parameters for ATMs
 opt_atm_param_edge = dict()
 opt_atm_param_nodal = dict()
 perf_opt_atm_param_edge = dict()
@@ -178,14 +161,14 @@ freqbands = {'theta': [3, 8],
                  'paper': [3, 40]}
 
 test = mat73.loadmat(
-    '/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Database/1_Clinical/Epilepsy_GMD/Data_Epi_MEG_4Classif_concat_NoTrials.mat')
+    '/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD/Data_Epi_MEG_4Classif_concat_NoTrials.mat')
 ch_names = test['labels_AAL1']
 ch_types = ["eeg" for i in range(np.shape(ch_names)[0])]
 
 
 grp_id_2use = ['HC', 'EPI 1']
 precomp_concat_name = path_data_root + '/concat_epochs_HC_EP1.gz'
-path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Figures/Classification/"
+path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Figures/Classification/"
 
 if osp.exists(precomp_concat_name):
     print("Loading existing concatenated precomputations...")

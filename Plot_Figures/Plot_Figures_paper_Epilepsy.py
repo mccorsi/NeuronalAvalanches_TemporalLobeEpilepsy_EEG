@@ -593,6 +593,8 @@ for frequency in list_freq:
     plt.savefig(path_figures_root + "TrialDurationEffect_ByTrialPerm_"+frequency+".eps", format="eps", dpi=300)
     plt.close('all')
 
+#%% Supplementary - ROC Curves across splits - cf 'SupplemMaterials_Plot_ROC_Curves_ATM_ImCoh_SVM_Epilepsy_HC_EP1.py'
+
 #%% Supplementary - ATM & ImCoh - Features study - Narrow band
 nbSplit = 50
 freqbands = {'theta-alpha': [3, 14]}

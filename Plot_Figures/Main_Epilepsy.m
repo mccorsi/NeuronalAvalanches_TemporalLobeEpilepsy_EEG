@@ -28,8 +28,7 @@ fs=250;
 color_ATM = [0.90796841, 0.49787195, 0.39171297]; % same colors as those chosen in Fig. 2
 color_ImCoh = [0.29408557, 0.13721193, 0.38442775];
 
-load(strcat(path_csv_root,'Features_ImCoh.mat'));
-load(strcat(path_csv_root,'Features_ATM.mat')); % don't have the edges features for all the trial...
+load(strcat(path_csv_root,'Features_ATM_ImCoh.mat'));
 
 freq='broad band';
 vmin=min(min(df_weights_estim_ImCoh_edges_nodal_broad_mean),min(df_weights_estim_ATM_edges_nodal_broad_mean));

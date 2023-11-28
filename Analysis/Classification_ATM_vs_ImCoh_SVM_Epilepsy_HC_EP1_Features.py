@@ -1,7 +1,7 @@
 # %%
 """
 ==============================================================
-Attempt to classify MEG data in the source space - neuronal avalanches vs classical approaches - classification on longer trials w/ SVM
+Study of the features chosen for the classification - ATM & ImCoh + SVM
 ===============================================================
 
 """
@@ -10,42 +10,33 @@ Attempt to classify MEG data in the source space - neuronal avalanches vs classi
 # License: BSD (3-clause)
 
 
+import gzip
+import mat73
+
+import numpy as np
+
 import os.path as osp
 import os
 
-import scipy.stats
-import seaborn as sns
-import matplotlib.pyplot as plt
-
 import pandas as pd
-import mat73
-
-from tqdm import tqdm
-import gzip
 import pickle
-import mne
-from mne import create_info, EpochsArray
-from mne.decoding import CSP as CSP_MNE
+
+import scipy.stats
+from scipy.stats import zscore
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import ShuffleSplit, cross_val_score
+from sklearn.model_selection import ShuffleSplit
 from sklearn.model_selection import cross_validate
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, precision_score, recall_score
 
-import numpy as np
-from scipy.stats import zscore
-from moabb.paradigms import MotorImagery
-
-# to compute PLV estimations for each trial
-from Scripts.py_viz.fc_pipeline import FunctionalTransformer
-
+# to compute ImCoh estimations for each trial
+from Analysis.fc_pipeline import FunctionalTransformer
 # %%
-if os.path.basename(os.getcwd()) == "Fenicotteri-equilibristi":
+if os.path.basename(os.getcwd()) == "NeuronalAvalanches_TemporalLobeEpilepsy_EEG":
     os.chdir("Database/1_Clinical/Epilepsy_GMD/")
-if os.path.basename(os.getcwd()) == "py_viz":
-    os.chdir("/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Database/1_Clinical/Epilepsy_GMD")
+if os.path.basename(os.getcwd()) == "Analysis":
+    os.chdir("/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD")
 basedir = os.getcwd()
 
 path_csv_root = os.getcwd() + '/1_Dataset-csv/'
@@ -135,43 +126,36 @@ def _build_df_atm_from_scores(scores, ppl_name, nbSplit, zthresh_value, aval_dur
 
     return  pd_ATM_classif_res
 
-def _build_df_plv_from_scores(scores, ppl_name, nbSplit, fmin, fmax):
-    pd_PLV_classif_res = pd.DataFrame.from_dict(scores)
-    ppl_plv = [ppl_name] * len(pd_PLV_classif_res)
-    pd_PLV_classif_res["pipeline"] = ppl_plv
-    pd_PLV_classif_res["split"] = [nbSplit] * len(ppl_plv)
-    pd_PLV_classif_res["freq"] = [str(fmin) + '-' + str(fmax)] * len(ppl_plv)
+def _build_df_ImCoh_from_scores(scores, ppl_name, nbSplit, fmin, fmax):
+    pd_ImCoh_classif_res = pd.DataFrame.from_dict(scores)
+    ppl_ImCoh = [ppl_name] * len(pd_ImCoh_classif_res)
+    pd_ImCoh_classif_res["pipeline"] = ppl_ImCoh
+    pd_ImCoh_classif_res["split"] = [nbSplit] * len(ppl_ImCoh)
+    pd_ImCoh_classif_res["freq"] = [str(fmin) + '-' + str(fmax)] * len(ppl_ImCoh)
 
-    return  pd_PLV_classif_res
+    return  pd_ImCoh_classif_res
 
 #%% parameters for classification
 # kk_components = 8
 nbSplit = 50
 scoring = ['precision', 'recall', 'accuracy', 'f1', 'roc_auc']
-# recall = tp / (tp + fn) # default avg binary, to be changed if unbalanced/more classes - https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html#sklearn.metrics.recall_score
-# precision = tp / (tp + fp) # default avg binary, to be changed if unbalanced/more classes - https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_score.html#sklearn.metrics.precision_score
-# f1 = F1 = 2 * (precision * recall) / (precision + recall) # here binary & balanced, otherwise need to be changed - https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score
-# roc_auc - Area under the receiver operating characteristic curve from prediction scores, default macro, to be changed for unbalanced and more classes - https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score
 
 # shuffle order of epochs & labels
 rng = np.random.default_rng(42)  # set a random seed
-n_perms = 1#00  # number of permutations wanted
+n_perms = 1 # number of permutations wanted
 
 # parameters for the default classifier & cross-validation
-#svm = GridSearchCV(SVC(), {"kernel": ("linear", "rbf"), "C": [0.1, 1, 10]}, cv=5)
 cv = ShuffleSplit(nbSplit, test_size=0.2, random_state=21)
 
 
 # %% parameters to be applied to extract the features
-freqbands = {'theta': [3, 8],
-             'alpha': [8, 14],
-             'theta-alpha': [3, 14],  # Epilepsy case
-             'paper': [3, 40]}
+freqbands = {'theta-alpha': [3, 14],
+             'broad': [3, 40]}
 
 opt_trial_duration = [100864/256] # one single trial for everything
 fs = 256
 
-test=mat73.loadmat('/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Database/1_Clinical/Epilepsy_GMD/Data_Epi_MEG_4Classif_concat_NoTrials.mat')
+test=mat73.loadmat('/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD/Data_Epi_MEG_4Classif_concat_NoTrials.mat')
 ch_names = test['labels_AAL1']
 ch_types = ["eeg" for i in range(np.shape(ch_names)[0])]
 
@@ -184,8 +168,8 @@ perf_opt_atm_param_nodal = dict()
 df_res_opt_db=pd.read_csv(
     path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_BroadBand.csv"
 )
-opt_atm_param_edge["paper"] = [df_res_opt_db["zthresh"][0], df_res_opt_db["val_duration"][0]]
-perf_opt_atm_param_edge["paper"] = df_res_opt_db["test_accuracy"][0]
+opt_atm_param_edge["broad"] = [df_res_opt_db["zthresh"][0], df_res_opt_db["val_duration"][0]]
+perf_opt_atm_param_edge["broad"] = df_res_opt_db["test_accuracy"][0]
 
 df_res_opt_theta_alpha=pd.read_csv(
     path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_theta_alphaBand.csv"
@@ -193,24 +177,11 @@ df_res_opt_theta_alpha=pd.read_csv(
 opt_atm_param_edge["theta-alpha"] = [df_res_opt_theta_alpha["zthresh"][0], df_res_opt_theta_alpha["val_duration"][0]]
 perf_opt_atm_param_edge["theta-alpha"] = df_res_opt_theta_alpha["test_accuracy"][0]
 
-df_res_opt_theta=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_theta_Band.csv"
-)
-opt_atm_param_edge["theta"] = [df_res_opt_theta["zthresh"][0], df_res_opt_theta["val_duration"][0]]
-perf_opt_atm_param_edge["theta"] = df_res_opt_theta["test_accuracy"][0]
-
-df_res_opt_alpha=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_alphaBand.csv"
-)
-opt_atm_param_edge["alpha"] = [df_res_opt_alpha["zthresh"][0], df_res_opt_alpha["val_duration"][0]]
-perf_opt_atm_param_edge["alpha"] = df_res_opt_alpha["test_accuracy"][0]
-
-
 df_res_opt_db_nodal=pd.read_csv(
     path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_BroadBand.csv"
 )
-opt_atm_param_nodal["paper"] = [df_res_opt_db_nodal["zthresh"][0], df_res_opt_db_nodal["val_duration"][0]]
-perf_opt_atm_param_nodal["paper"] = df_res_opt_db_nodal["test_accuracy"][0]
+opt_atm_param_nodal["broad"] = [df_res_opt_db_nodal["zthresh"][0], df_res_opt_db_nodal["val_duration"][0]]
+perf_opt_atm_param_nodal["broad"] = df_res_opt_db_nodal["test_accuracy"][0]
 
 df_res_opt_theta_alpha_nodal=pd.read_csv(
     path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_theta_alphaBand.csv"
@@ -221,16 +192,7 @@ perf_opt_atm_param_nodal["theta-alpha"] = df_res_opt_theta_alpha_nodal["test_acc
 df_res_opt_theta_nodal=pd.read_csv(
     path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_theta_Band.csv"
 )
-opt_atm_param_nodal["theta"] = [df_res_opt_theta_nodal["zthresh"][0], df_res_opt_theta_nodal["val_duration"][0]]
-perf_opt_atm_param_nodal["theta"] = df_res_opt_theta_nodal["test_accuracy"][0]
-
-df_res_opt_alpha_nodal=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_alphaBand.csv"
-)
-opt_atm_param_nodal["alpha"] = [df_res_opt_alpha_nodal["zthresh"][0], df_res_opt_alpha_nodal["val_duration"][0]]
-perf_opt_atm_param_nodal["alpha"] = df_res_opt_alpha_nodal["test_accuracy"][0]
-
-#%% Classification HC vs EP1 - 32 vs 32
+#%% Classification HC vs EP1 - 31 vs 31
 grp_id_2use = ['HC', 'EPI 1']
 precomp_concat_name = path_data_root + '/concat_epochs_HC_EP1.gz'
 
@@ -241,18 +203,12 @@ if osp.exists(precomp_concat_name):
 else:
     print("Please consider performing precomputations and/or concatenation of the epochs!")
 
-epochs_concat['theta'] = epochs_concat['theta-alpha']
-epochs_concat['alpha'] = epochs_concat['paper']
-labels_concat['theta'] = labels_concat['theta-alpha']
-labels_concat['alpha'] = labels_concat['paper']
-
-
 for f in freqbands:
     fmin = freqbands[f][0]
     fmax = freqbands[f][1]
     epochs2use=epochs_concat[f].drop([2, 31, 32, 33, 34], reason='USER') # to have the same nb of pz/subjects and because data from the second patient may be corrupted
     results_atm = pd.DataFrame()
-    results_plv = pd.DataFrame()
+    results_ImCoh = pd.DataFrame()
     for iperm in range(n_perms): # in case we want to do some permutations to increase the statistical power
         perm = rng.permutation(len(epochs2use))
         epochs_in_permuted_order = epochs2use[perm]
@@ -261,51 +217,51 @@ for f in freqbands:
         nb_trials = len(data_shuffle)  # nb subjects/ pz here
         nb_ROIs = np.shape(data_shuffle)[1]
 
-        ### PLV + SVM
+        ### ImCoh + SVM
         # here to compute FC on long recordings we increase the time window of interest to speed up the process
         ft = FunctionalTransformer(
-            delta=30, ratio=0.5, method="plv", fmin=fmin, fmax=fmax
+            delta=30, ratio=0.5, method="imcoh", fmin=fmin, fmax=fmax
         )
-        preproc_meg = Pipeline(steps=[("ft", ft)])  # , ("spd", EnsureSPD())])
-        mat_PLV = preproc_meg.fit_transform(epochs_in_permuted_order)  # actually unfair because does an average of the estimations ie more robust than ATM this way
+        preproc_meg = Pipeline(steps=[("ft", ft)])  
+        mat_ImCoh = preproc_meg.fit_transform(epochs_in_permuted_order) 
 
-        PLV_cl = np.reshape(mat_PLV, (nb_trials, nb_ROIs * nb_ROIs))
-        PLV_nodal_cl = np.sum(mat_PLV,1)
+        ImCoh_cl = np.reshape(mat_ImCoh, (nb_trials, nb_ROIs * nb_ROIs))
+        ImCoh_nodal_cl = np.sum(mat_ImCoh,1)
 
         # here just to find out the best hyperparameters, nothing more - need to be linear to retrieve features
         clf_prelim = GridSearchCV(SVC(kernel="linear"), {"C": [0.1, 1, 10]}, cv=5)
-        clf_prelim.fit(PLV_cl, label_shuffle)
-        best_C_PLV = clf_prelim.best_params_["C"]
+        clf_prelim.fit(ImCoh_cl, label_shuffle)
+        best_C_ImCoh = clf_prelim.best_params_["C"]
 
-        clf_prelim.fit(PLV_nodal_cl, label_shuffle)
-        best_C_PLV_nodal = clf_prelim.best_params_["C"]
+        clf_prelim.fit(ImCoh_nodal_cl, label_shuffle)
+        best_C_ImCoh_nodal = clf_prelim.best_params_["C"]
 
         # real classification now
-        my_svm_PLV = SVC(C=best_C_PLV, kernel="linear")
-        my_svm_PLV_nodal = SVC(C=best_C_PLV_nodal, kernel="linear")
+        my_svm_ImCoh = SVC(C=best_C_ImCoh, kernel="linear")
+        my_svm_ImCoh_nodal = SVC(C=best_C_ImCoh_nodal, kernel="linear")
 
-        clf_plv = Pipeline([('SVM', my_svm_PLV)])
-        clf_plv_nodal = Pipeline([('SVM', my_svm_PLV_nodal)])
+        clf_ImCoh = Pipeline([('SVM', my_svm_ImCoh)])
+        clf_ImCoh_nodal = Pipeline([('SVM', my_svm_ImCoh_nodal)])
 
-        # score_PLV_SVM = cross_val_score(clf_2, PLV_cl, labels, cv=cv, n_jobs=None)
-        scores_PLV_SVM = cross_validate(clf_plv, PLV_cl,  label_shuffle, cv=cv, n_jobs=None, scoring=scoring, return_estimator=True) # returns the estimator objects for each cv split!
-        scores_PLV_nodal_SVM = cross_validate(clf_plv_nodal, PLV_nodal_cl,  label_shuffle, cv=cv, n_jobs=None, scoring=scoring, return_estimator=True) # returns the estimator objects for each cv split!
+        # score_ImCoh_SVM = cross_val_score(clf_2, ImCoh_cl, labels, cv=cv, n_jobs=None)
+        scores_ImCoh_SVM = cross_validate(clf_ImCoh, ImCoh_cl,  label_shuffle, cv=cv, n_jobs=None, scoring=scoring, return_estimator=True) # returns the estimator objects for each cv split!
+        scores_ImCoh_nodal_SVM = cross_validate(clf_ImCoh_nodal, ImCoh_nodal_cl,  label_shuffle, cv=cv, n_jobs=None, scoring=scoring, return_estimator=True) # returns the estimator objects for each cv split!
 
         # compute and store normalized weights
-        path2store = path_csv_root + "/SVM/PLV_nodal_weights_HC_EP1_SVM_Classification" + "-freq-" + str(
+        path2store = path_csv_root + "/SVM/ImCoh_nodal_weights_HC_EP1_SVM_Classification" + "-freq-" + str(
             fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv"
-        weights_estim_PLV_nodal = _compute_normalized_weights(scores_PLV_nodal_SVM, nbSplit, path2store)
+        weights_estim_ImCoh_nodal = _compute_normalized_weights(scores_ImCoh_nodal_SVM, nbSplit, path2store)
 
-        path2store = path_csv_root + "/SVM/PLV_edges_weights_HC_EP1_SVM_Classification" + "-freq-" + str(
+        path2store = path_csv_root + "/SVM/ImCoh_edges_weights_HC_EP1_SVM_Classification" + "-freq-" + str(
             fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv"
-        weights_estim_PLV = _compute_normalized_weights(scores_PLV_SVM, nbSplit, path2store)
+        weights_estim_ImCoh = _compute_normalized_weights(scores_ImCoh_SVM, nbSplit, path2store)
 
-        # concatenate PLV results in a dedicated dataframe
-        temp_results_plv_nodal = _build_df_plv_from_scores(scores=scores_PLV_nodal_SVM, ppl_name="PLV+SVM-nodal",
+        # concatenate ImCoh results in a dedicated dataframe
+        temp_results_ImCoh_nodal = _build_df_ImCoh_from_scores(scores=scores_ImCoh_nodal_SVM, ppl_name="ImCoh+SVM-nodal",
                                                            nbSplit=nbSplit, fmin=fmin, fmax=fmax)
-        temp_results_plv = _build_df_plv_from_scores(scores=scores_PLV_SVM, ppl_name="PLV+SVM",
+        temp_results_ImCoh = _build_df_ImCoh_from_scores(scores=scores_ImCoh_SVM, ppl_name="ImCoh+SVM",
                                                      nbSplit=nbSplit, fmin=fmin, fmax=fmax)
-        results_plv = pd.concat((temp_results_plv, temp_results_plv_nodal), ignore_index=True)
+        results_ImCoh = pd.concat((temp_results_ImCoh, temp_results_ImCoh_nodal), ignore_index=True)
 
 
         ### ATM + SVM
@@ -381,32 +337,30 @@ for f in freqbands:
         results_atm = pd.concat((results_atm, temp_results_atm, temp_results_atm_nodal))
 
 
-    # concatenate results in a single dataframe - TODO: change name
-    results_global = pd.concat((results_atm, results_plv))
+    # concatenate results in a single dataframe 
+    results_global = pd.concat((results_atm, results_ImCoh))
     results_global.to_csv(
-            path_csv_root + "/SVM/eaturesInfos_HC_EP1_IndivOpt_ATM_PLV_Comparison_SVM_Classification-allnode-2class-" +
+            path_csv_root + "/SVM/FeaturesInfos_HC_EP1_IndivOpt_ATM_ImCoh_Comparison_SVM_Classification-allnode-2class-" +
             "-freq-" + str(fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv"
         )
     print(
             "saved " +
-            path_csv_root + "/SVM/eaturesInfos_HC_EP1_IndivOpt_ATM_PLV_Comparison_SVM_Classification-allnode-2class-" +
+            path_csv_root + "/SVM/FeaturesInfos_HC_EP1_IndivOpt_ATM_ImCoh_Comparison_SVM_Classification-allnode-2class-" +
             "-freq-" + str(fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv"
         )
 
 #%% List of labels - Desikan
-path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Figures/Classification/"
+path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Figures/Classification/"
 
-freqbands = {'theta': [3, 8],
-             'alpha': [8, 14],
-             'theta-alpha': [3, 14],  # Epilepsy case
-             'paper': [3, 40]}
+freqbands = {'theta-alpha': [3, 14],  # Epilepsy case
+             'broad': [3, 40]}
 
 labels = pd.read_csv(path_csv_root + "LabelsDesikanAtlas.csv")
-df_weights_estim_PLV_nodal = dict()
-df_weights_estim_PLV_edges = dict()
+df_weights_estim_ImCoh_nodal = dict()
+df_weights_estim_ImCoh_edges = dict()
 df_weights_estim_ATM_nodal = dict()
 df_weights_estim_ATM_edges = dict()
-df_weights_estim_PLV_edges_nodal = dict()
+df_weights_estim_ImCoh_edges_nodal = dict()
 df_weights_estim_ATM_edges_nodal = dict()
 df_weights_estim_ATM_edges_nodal_max = dict()
 df_weights_estim_ATM_edges_nodal_mean = dict()
@@ -417,30 +371,6 @@ column_values = labels.values
 for f in freqbands:
     fmin = freqbands[f][0]
     fmax = freqbands[f][1]
-
-    # temp = pd.read_csv(path_csv_root + "/SVM/Features and co/PLV_nodal_weights_FeaturesInfos_HC_EP1_SVM_Classification" + "-freq-" + str(
-    #     fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv")
-    # weights_estim_PLV_nodal = temp["median"]
-    # df_weights_estim_PLV_nodal[f] = pd.DataFrame(data = weights_estim_PLV_nodal)
-    # temp2 = pd.read_csv(path_csv_root + "/SVM/Features and co/PLV_edges_weights_FeaturesInfos_HC_EP1_SVM_Classification" + "-freq-" + str(
-    #     fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv")
-    # weights_estim_PLV_edges = np.array(temp2["median"]).reshape(68,68)
-    # df_weights_estim_PLV_edges[f] = pd.DataFrame(data = weights_estim_PLV_edges,
-    #                                           index=index_values,
-    #                                           columns=column_values)
-    # # sns.set(font_scale=0.6)
-    # # plt.figure(figsize=(16, 16))
-    # # sns.heatmap(df_weights_estim_PLV_edges[f], cmap="viridis", square=True)
-    # # plt.savefig(path_figures_root + 'Features_EP1_vs_EP1_Edges_PLV_fmin_'+str(fmin)+ '_fmax_'+ str(fmax)+'.pdf', dpi=600)
-    #
-    # weights_estim_PLV_edges_nodal = np.median(weights_estim_PLV_edges, 1)
-    # df_weights_estim_PLV_edges_nodal[f] = pd.DataFrame(data = weights_estim_PLV_edges_nodal,
-    #                                           index=index_values,
-    #                                           columns=["ROIs"])
-    # # sns.set(font_scale=0.24)
-    # # plt.figure(figsize=(16, 16))
-    # # df_weights_estim_PLV_edges_nodal[f].sort_values(by='ROIs',ascending=True).plot.barh()
-    # # plt.savefig(path_figures_root + 'Features_EP1_vs_EP1_NodalFromEdges_PLV_fmin_'+str(fmin)+ '_fmax_'+ str(fmax)+'.pdf', dpi=600)
 
     temp3 = pd.read_csv(
         path_csv_root + "/SVM/Features and co/ATM_nodal_weights_FeaturesInfos_HC_EP1_SVM_Classification" + "-freq-" + str(
@@ -454,11 +384,6 @@ for f in freqbands:
     df_weights_estim_ATM_edges[f] = pd.DataFrame(data = weights_estim_ATM_edges,
                                               index=index_values,
                                               columns=column_values)
-    # sns.set(font_scale=0.6)
-    # plt.figure(figsize=(16, 16))
-    # sns.heatmap(df_weights_estim_ATM_edges[f], cmap="viridis", square=True)
-    # plt.savefig(path_figures_root + 'Features_EP1_vs_EP1_Edges_ATM_fmin_'+str(fmin)+ '_fmax_'+ str(fmax)+'.pdf', dpi=600)
-
     weights_estim_ATM_edges_nodal = np.median(weights_estim_ATM_edges,1)
     df_weights_estim_ATM_edges_nodal[f] = pd.DataFrame(data = weights_estim_ATM_edges_nodal,
                                               index=index_values,
@@ -471,45 +396,19 @@ for f in freqbands:
     df_weights_estim_ATM_edges_nodal_max[f] = pd.DataFrame(data = weights_estim_ATM_edges_nodal_max,
                                               index=index_values,
                                               columns=["ROIs"])
-    # sns.set(font_scale=0.24)
-    # plt.figure(figsize=(16, 16))
-    # df_weights_estim_ATM_edges_nodal[f].sort_values(by='ROIs',ascending=True).plot.barh()
-    # plt.savefig(path_figures_root + 'Features_EP1_vs_EP1_NodalFromEdges_ATM_fmin_'+str(fmin)+ '_fmax_'+ str(fmax)+'.pdf', dpi=600)
 
 
 #%% save .mat to plot nodal results into scalp
-features = {"df_weights_estim_ATM_edges_nodal_theta": df_weights_estim_ATM_edges_nodal['theta']['ROIs'].values,
-            "df_weights_estim_ATM_nodal_theta": df_weights_estim_ATM_nodal['theta'].values,
-            # "df_weights_estim_PLV_edges_nodal_theta":df_weights_estim_PLV_edges_nodal['theta']['ROIs'].values,
-            # "df_weights_estim_PLV_nodal_theta": df_weights_estim_PLV_nodal['theta'].values,
-            "df_weights_estim_ATM_edges_nodal_alpha": df_weights_estim_ATM_edges_nodal['alpha']['ROIs'].values,
-            "df_weights_estim_ATM_nodal_alpha": df_weights_estim_ATM_nodal['alpha'].values,
-            # "df_weights_estim_PLV_edges_nodal_alpha":df_weights_estim_PLV_edges_nodal['alpha']['ROIs'].values,
-            # "df_weights_estim_PLV_nodal_alpha": df_weights_estim_PLV_nodal['alpha'].values,
-            "df_weights_estim_ATM_edges_nodal_theta_alpha": df_weights_estim_ATM_edges_nodal['theta-alpha']['ROIs'].values,
+features = {"df_weights_estim_ATM_edges_nodal_theta_alpha": df_weights_estim_ATM_edges_nodal['theta-alpha']['ROIs'].values,
             "df_weights_estim_ATM_nodal_theta_alpha": df_weights_estim_ATM_nodal['theta-alpha'].values,
             "df_weights_estim_ATM_edges_nodal_theta_alpha_mean": df_weights_estim_ATM_edges_nodal_mean['theta-alpha'][
                 'ROIs'].values,
-            # "df_weights_estim_PLV_edges_nodal_theta_alpha":df_weights_estim_PLV_edges_nodal['theta-alpha']['ROIs'].values,
-            # "df_weights_estim_PLV_nodal_theta_alpha": df_weights_estim_PLV_nodal['theta-alpha'].values,
-            "df_weights_estim_ATM_edges_nodal_broad": df_weights_estim_ATM_edges_nodal['paper'][
+            "df_weights_estim_ATM_edges_nodal_broad": df_weights_estim_ATM_edges_nodal['broad'][
                 'ROIs'].values,
-            "df_weights_estim_ATM_edges_nodal_broad_mean": df_weights_estim_ATM_edges_nodal_mean['paper'][
+            "df_weights_estim_ATM_edges_nodal_broad_mean": df_weights_estim_ATM_edges_nodal_mean['broad'][
                 'ROIs'].values,
-            "df_weights_estim_ATM_edges_nodal_broad_max": df_weights_estim_ATM_edges_nodal_max['paper'][
-                'ROIs'].values,
-            "df_weights_estim_ATM_nodal_broad": df_weights_estim_ATM_nodal['paper'].values,
-            # "df_weights_estim_PLV_edges_nodal_broad": df_weights_estim_PLV_edges_nodal['paper'][
-            #     'ROIs'].values,
-            # "df_weights_estim_PLV_nodal_broad": df_weights_estim_PLV_nodal['paper'].values,
-            "df_weights_estim_ATM_edges_broad": df_weights_estim_ATM_edges['paper'].T.values,
-            "df_weights_estim_ATM_edges_theta": df_weights_estim_ATM_edges['theta'].T.values,
-            "df_weights_estim_ATM_edges_alpha": df_weights_estim_ATM_edges['alpha'].T.values,
+            "df_weights_estim_ATM_nodal_broad": df_weights_estim_ATM_nodal['broad'].values,
+            "df_weights_estim_ATM_edges_broad": df_weights_estim_ATM_edges['broad'].T.values,
             "df_weights_estim_ATM_edges_theta_alpha": df_weights_estim_ATM_edges['theta-alpha'].T.values,
-            # "df_weights_estim_PLV_edges_broad": df_weights_estim_PLV_edges['paper'].T.values,
-            # "df_weights_estim_PLV_edges_theta": df_weights_estim_PLV_edges['theta'].T.values,
-            # "df_weights_estim_PLV_edges_alpha": df_weights_estim_PLV_edges['alpha'].T.values,
-            # "df_weights_estim_PLV_edges_theta_alpha": df_weights_estim_PLV_edges['theta-alpha'].T.values,
             }
-# scipy.io.savemat(path_csv_root+'Features_ATM_PLV.mat',features)
-scipy.io.savemat(path_csv_root+'Features_ATM.mat',features)
+scipy.io.savemat(path_csv_root+'Features_ATM_ImCoh.mat',features)

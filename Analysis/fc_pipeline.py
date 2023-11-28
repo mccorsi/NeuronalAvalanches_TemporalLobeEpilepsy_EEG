@@ -1,6 +1,6 @@
 """
 =================================
-Alternative features based on dedicated MEG dataset
+Alternative features based on functional connectivity and neuronal avalanches
 =================================
 This module is design to compute neuronal avalanches metrics on a MEG dataset
 """
@@ -19,18 +19,14 @@ from mne import get_config, set_config, set_log_level, EpochsArray
 from mne.connectivity import spectral_connectivity
 from mne.connectivity import envelope_correlation
 from mne.time_frequency import psd_multitaper
-from moabb.evaluations.base import BaseEvaluation
+
 from scipy.stats import zscore
 
-from sklearn.model_selection import StratifiedKFold, cross_val_score
-from sklearn.base import clone
-from sklearn.preprocessing import LabelEncoder
-from time import time
+
 import numpy as np
 from mne.epochs import BaseEpochs
-from sklearn.metrics import get_scorer
 
-from pyriemann.classification import MDM, FgMDM
+from pyriemann.classification import FgMDM
 from pyriemann.estimation import Coherences
 
 from scipy import stats as spstats

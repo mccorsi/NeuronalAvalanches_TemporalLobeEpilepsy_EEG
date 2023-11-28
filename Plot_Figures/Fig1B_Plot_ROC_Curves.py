@@ -1,7 +1,7 @@
 # %%
 """
 ==============================================================
-Attempt to classify MEG data in the source space - neuronal avalanches vs classical approaches - classification on longer trials w/ SVM
+Plot ROC curves from ATM/ImCoh classification averaged across CV splits
 ===============================================================
 
 """
@@ -9,25 +9,19 @@ Attempt to classify MEG data in the source space - neuronal avalanches vs classi
 #
 # License: BSD (3-clause)
 
+import gzip
+
+import mat73
+import matplotlib.pyplot as plt
+
+import numpy as np
 
 import os.path as osp
 import os
-
-import scipy.stats
-import seaborn as sns
-import matplotlib.pyplot as plt
-
 import pandas as pd
-import mat73
-
-from tqdm import tqdm
-import gzip
 import pickle
-import mne
-from mne.connectivity import spectral_connectivity
-from mne import create_info, EpochsArray
-from mne.decoding import CSP as CSP_MNE
-from mne.connectivity import spectral_connectivity
+
+from scipy.stats import zscore
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
@@ -36,21 +30,14 @@ from sklearn.model_selection import ShuffleSplit, cross_val_score
 from sklearn.model_selection import cross_validate
 from sklearn.metrics import confusion_matrix, RocCurveDisplay, auc
 
-import numpy as np
-from scipy.stats import zscore
-from moabb.paradigms import MotorImagery
-
 # to compute ImCoh estimations for each trial
-from Scripts.py_viz.fc_pipeline import FunctionalTransformer
+from Analysis.fc_pipeline import FunctionalTransformer
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# %%
-if os.path.basename(os.getcwd()) == "Fenicotteri-equilibristi":
+# %% to be adapted
+if os.path.basename(os.getcwd()) == "NeuronalAvalanches_TemporalLobeEpilepsy_EEG":
     os.chdir("Database/1_Clinical/Epilepsy_GMD/")
 if os.path.basename(os.getcwd()) == "py_viz":
-    os.chdir("/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Database/1_Clinical/Epilepsy_GMD")
+    os.chdir("/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD")
 basedir = os.getcwd()
 
 path_csv_root = os.getcwd() + '/1_Dataset-csv/'
@@ -61,8 +48,7 @@ if not osp.exists(path_data_root):
     os.mkdir(path_data_root)
 path_data_root_chan = os.getcwd()
 
-path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Figures/Classification/"
-
+path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Figures/Classification/"
 
 # %% functions
 
@@ -147,7 +133,7 @@ freqbands = {'theta-alpha': [3, 14],  # Epilepsy case
 opt_trial_duration = [100864/256] # one single trial for everything
 fs = 256
 
-test=mat73.loadmat('/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Database/1_Clinical/Epilepsy_GMD/Data_Epi_MEG_4Classif_concat_NoTrials.mat')
+test=mat73.loadmat('/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD/Data_Epi_MEG_4Classif_concat_NoTrials.mat')
 ch_names = test['labels_AAL1']
 ch_types = ["eeg" for i in range(np.shape(ch_names)[0])]
 
@@ -232,22 +218,6 @@ for f in freqbands:
         mean_tpr[-1] = 1.0
         mean_auc = auc(mean_fpr, mean_tpr)
         std_auc = np.std(aucs)
-        # fig1, ax1 = plt.subplots(figsize=(6, 6))
-        # ax1.plot(
-        #     mean_fpr,
-        #     mean_tpr,
-        #     color = 'b',
-        #     label=r"Mean ROC ImCoh (AUC = %0.2f $\pm$ %0.2f)" % (mean_auc, std_auc),
-        #     lw=2,
-        #     alpha=0.8
-        # )
-        # ax1.axis("square")
-        # ax1.set(
-        #     xlim=[-0.05, 1.05],
-        #     ylim=[-0.05, 1.05],
-        #     xlabel="False Positive Rate",
-        #     ylabel="True Positive Rate"
-        # )
 
         # concatenate ImCoh results in a dedicated dataframe
         pd_ImCoh_SVM = pd.DataFrame.from_dict(scores_ImCoh_SVM)
@@ -293,7 +263,6 @@ for f in freqbands:
         temp_ATM = np.nan_to_num(ATM, nan=0)
         ATM_nodal = np.sum(temp_ATM, 1)
 
-        #score_ATM_SVM = cross_val_score(clf_2, reshape_ATM, labels, cv=cv, n_jobs=None)
         scores_ATM_SVM = cross_validate(clf_2, fixed_reshape_ATM, label_shuffle, cv=cv, n_jobs=None, scoring=scoring, return_estimator=False)
         scores_ATM_SVM_nodal = cross_validate(clf_2, ATM_nodal, label_shuffle, cv=cv, n_jobs=None,
                                         scoring=scoring, return_estimator=False)
