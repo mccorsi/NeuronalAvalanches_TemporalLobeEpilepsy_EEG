@@ -1,6 +1,6 @@
 """
 ==============================================================
-Plot figures
+Plot figures of the paper
 ===============================================================
 
 """
@@ -8,18 +8,14 @@ Plot figures
 #
 # License: BSD (3-clause)
 
-
 import pandas as pd
 
 import ptitprince as pt
 
 import matplotlib.pyplot as plt
-import scipy.io
-import mne
 import numpy as np
-import mat73
 from mne_connectivity.viz.circle import _plot_connectivity_circle
-from mne.viz import circular_layout#, plot_connectivity_circle
+from mne.viz import circular_layout
 
 import os.path as osp
 import os
@@ -111,10 +107,10 @@ def Lobes_Partition( MatrixToBeDivided , idx_F , idx_M , idx_P , idx_T , idx_O )
            SubMatrix_O_O, output
 
 #%% Set paths
-if os.path.basename(os.getcwd()) == "Fenicotteri-equilibristi":
+if os.path.basename(os.getcwd()) == "NeuronalAvalanches_TemporalLobeEpilepsy_EEG":
     os.chdir("Database/1_Clinical/Epilepsy_GMD/")
 if os.path.basename(os.getcwd()) == "py_viz":
-    os.chdir("/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Database/1_Clinical/Epilepsy_GMD")
+    os.chdir("/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD")
 basedir = os.getcwd()
 
 path_csv_root = os.getcwd() + '/1_Dataset-csv/'
@@ -125,7 +121,7 @@ if not osp.exists(path_data_root):
     os.mkdir(path_data_root)
 path_data_root_chan = os.getcwd()
 
-path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Figures/Classification/"
+path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Figures/Classification/"
 
 
 
@@ -210,7 +206,7 @@ node_angles = circular_layout(node_names=node_names, node_order=node_order,
 #%% Classification parameters
 nbSplit = 50
 
-#%% Figure 1A - Classification performance (accuracy) - ImCoh vs ATM
+#%% Figure 2A - Classification performance (accuracy) - ImCoh vs ATM
 results=pd.DataFrame()
 freqbands_tot = {'theta-alpha': [3, 14],
                   'paper': [3, 40]}
@@ -244,7 +240,7 @@ g.fig.subplots_adjust(top=0.75)
 g.savefig(path_figures_root+'AccuracyResults_RaincloudPlots.png', dpi=600, facecolor='white')
 g.savefig(path_figures_root+'Fig1A.eps', format='eps', dpi=600, facecolor='white')
 
-#%% Figure 1B - ROC Curves - cf script # TODO: note filename: 'Fig1B_Plot_ROC_Curves.py'
+#%% Figure 2B - ROC Curves - cf script 'Fig1B_Plot_ROC_Curves.py''
 
 
 #%% Table 1
@@ -355,10 +351,10 @@ Res_Data_Table["ATM"]=Res_Data_Table_ATM
 Res_Data_Table["ImCoh"]=Res_Data_Table_ImCoh
 
 
+#%% Figures 3A & 3C - Features importance - Histograms - ImCoh vs ATM - cf Matlab script entitled 'Main_Epilepsy.m'
 
-#%% Figure 2A - Features importance - Histograms - ImCoh vs ATM - TODO: add filename matlab
 
-#%% Figure 2B - Features importance - Edge-wise - ImCoh vs ATM
+#%% Figure 3B - Features importance - Edge-wise - ImCoh vs ATM
 nbSplit = 50
 freqbands = {'paper': [3, 40]}
 labels = pd.read_csv(path_csv_root + "LabelsDesikanAtlas.csv")
@@ -472,11 +468,9 @@ for f in freqbands:
         dpi=600,
         facecolor='white')
 
-#%% Figure 2C - Features importance - Node-wise - ImCoh vs ATM -> cf matlab code #TODO: add filename
 
-
-#%% Figure 3 - Temporal scale - ATMs & ImCoh (suppl)
-opt_trial_duration= [5, 15, 30, 60, 120, 180, 300] #from 15 for ImCoh
+#%% Figure 4 - Effect of the signal length - ATMs
+opt_trial_duration= [5, 15, 30, 60, 120, 180, 300]
 freqbands = {'theta-alpha': [3, 14],
              'paper': [3, 40]}
 
@@ -484,27 +478,18 @@ results_trial_dur= pd.read_csv(path_csv_root + "/SVM/TrialDurationEffect_HC_EP1_
         '-nbSplit' + str(nbSplit) + ".csv"
              )
 results_atm_edges = results_trial_dur[results_trial_dur["pipeline"] == "ATM+SVM"]
-results_atm_nodal = results_trial_dur[results_trial_dur["pipeline"] == "ATM+SVM-nodal"]
-
-results_trial_dur_imcoh = pd.read_csv(path_csv_root + "/SVM/TrialDurationEffect_HC_EP1_IndivOpt_ImCoh_Classification-allnode-2class--nbSplit50.csv")
-results_imcoh_edges = results_trial_dur_imcoh[results_trial_dur_imcoh["pipeline"] == "ImCoh+SVM"]
-results_imcoh_nodal = results_trial_dur_imcoh[results_trial_dur_imcoh["pipeline"] == "ImCoh+SVM-nodal"]
 
 # study by split
 lst = list()
 lst_nodal = list()
-lst_imcoh = list()
-lst_nodal_imcoh = list()
 for f in freqbands:
     fmin = freqbands[f][0]
     fmax = freqbands[f][1]
     results_atm_edges_f= results_atm_edges[results_atm_edges["freq"] == str(fmin)+'-'+str(fmax)]
-    results_imcoh_edges_f = results_imcoh_edges[results_imcoh_edges["freq"] == str(fmin) + '-' + str(fmax)]
 
     # for a given duration: for each split, median over all the possible combinations of trial
     for kk_trial_crop in opt_trial_duration:
         temp_results_atm_edges_trial_dur = results_atm_edges_f[results_atm_edges_f["trial-duration"]==kk_trial_crop]
-        temp_results_imcoh_edges_trial_dur = results_imcoh_edges_f[results_imcoh_edges_f["trial-duration"]==kk_trial_crop]
 
         for kk_split in range(nbSplit):
             temp_res_atm_edges = temp_results_atm_edges_trial_dur[temp_results_atm_edges_trial_dur["split"]==kk_split]
@@ -516,36 +501,23 @@ for f in freqbands:
             freq_edges = temp_res_atm_edges["freq"].unique()[0]
             lst.append([score_edges, pipeline_edges, kk_split, zthresh_edges, val_duration_edges, freq_edges, trial_duration_edges])
 
-            temp_res_imcoh_edges = temp_results_imcoh_edges_trial_dur[temp_results_imcoh_edges_trial_dur["split"]==kk_split]
-            score_edges = temp_res_imcoh_edges["test_accuracy"].median()
-            pipeline_edges = temp_res_imcoh_edges["pipeline"].unique()[0]
-            trial_duration_edges = temp_res_imcoh_edges["trial-duration"].unique()[0]
-            freq_edges = temp_res_imcoh_edges["freq"].unique()[0]
-            lst_imcoh.append([score_edges, pipeline_edges, kk_split, freq_edges, trial_duration_edges])
-
 
 cols = ["test_accuracy", "pipeline", "split", "zthresh","aval_duration", "freq", "trial_duration"]
-cols_imcoh = ["test_accuracy", "pipeline", "split", "freq", "trial_duration"]
 pd_nb_bits_ATM_bySplit_edges = pd.DataFrame(lst, columns=cols)
-pd_nb_bits_ImCoh_bySplit_edges = pd.DataFrame(lst_imcoh, columns=cols_imcoh)
 
 # study by perm for a given definition of the trial
 lst = list()
 lst_nodal = list()
-lst_imcoh = list()
-lst_nodal_imcoh = list()
 num_perm=100
 plt.close('all')
 for f in freqbands:
     fmin = freqbands[f][0]
     fmax = freqbands[f][1]
     results_atm_edges_f= results_atm_edges[results_atm_edges["freq"] == str(fmin)+'-'+str(fmax)]
-    results_imcoh_edges_f = results_imcoh_edges[results_imcoh_edges["freq"] == str(fmin)+'-'+str(fmax)]
-
+    
     # for a given duration: for each split, median over all the possible combinations of trial
     for kk_trial_crop in opt_trial_duration:
         temp_results_atm_edges_trial_dur = results_atm_edges_f[results_atm_edges_f["trial-duration"]==kk_trial_crop]
-        temp_results_imcoh_edges_trial_dur = results_imcoh_edges_f[results_imcoh_edges_f["trial-duration"]==kk_trial_crop]
 
         for kk_trial_perm in range(num_perm):
             temp_res_atm_edges = temp_results_atm_edges_trial_dur[temp_results_atm_edges_trial_dur["trial-permutation"]==kk_trial_perm]
@@ -557,31 +529,14 @@ for f in freqbands:
             freq_edges = temp_res_atm_edges["freq"].unique()[0]
             lst.append([score_edges, pipeline_edges, kk_trial_perm, zthresh_edges, val_duration_edges, freq_edges, trial_duration_edges])
 
-            temp_res_imcoh_edges = temp_results_imcoh_edges_trial_dur[temp_results_imcoh_edges_trial_dur["trial-permutation"]==kk_trial_perm]
-            score_edges = temp_res_imcoh_edges["test_accuracy"].median()
-            pipeline_edges = temp_res_imcoh_edges["pipeline"].unique()[0]
-            trial_duration_edges = temp_res_imcoh_edges["trial-duration"].unique()[0]
-            freq_edges = temp_res_imcoh_edges["freq"].unique()[0]
-            lst_imcoh.append([score_edges, pipeline_edges, val_duration_edges, freq_edges, trial_duration_edges])
-
 cols = ["test_accuracy", "pipeline", "trial-permutation", "zthresh","aval_duration", "freq", "trial_duration"]
-cols_imcoh = ["test_accuracy", "pipeline", "trial-permutation", "freq", "trial_duration"]
 pd_nb_bits_ATM_byTrialPerm_edges = pd.DataFrame(lst, columns=cols)
-pd_nb_bits_ImCoh_byTrialPerm_edges = pd.DataFrame(lst_imcoh, columns=cols)
 
 # plot results
 list_freq=pd_nb_bits_ATM_bySplit_edges["freq"].unique()
 plt.style.use("classic")
 for frequency in list_freq:
     temp_pd_nb_bits_ATM_bySplit_edges = pd_nb_bits_ATM_bySplit_edges[pd_nb_bits_ATM_bySplit_edges["freq"]==frequency]
-    # g = sns.catplot(y="test_accuracy",
-    #                 x='trial_duration',
-    #                 height=4, aspect=3, s=2,
-    #                 palette = 'colorblind',
-    #                 data=temp_pd_nb_bits_ATM_bySplit_edges)
-    # plt.savefig(path_figures_root + "Paper_TrialDurationEffect_BySplit_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
-
-
     sns.set_style('white')
     palette = 'Blues'
     ax = sns.violinplot(y="test_accuracy", x="trial_duration", data=temp_pd_nb_bits_ATM_bySplit_edges, hue="trial_duration", dodge=False,
@@ -594,8 +549,6 @@ for frequency in list_freq:
         x0, y0, width, height = bbox.bounds
         violin.set_clip_path(plt.Rectangle((x0, y0), width / 2, height, transform=ax.transData))
 
-    #sns.boxplot(y="test_accuracy", x="trial_duration", data=temp_pd_nb_bits_ATM_bySplit_edges, saturation=1, showfliers=False,
-     #             width=0.3, boxprops={'zorder': 3, 'facecolor': 'none'}, ax=ax)
     old_len_collections = len(ax.collections)
     sns.stripplot(y="test_accuracy", x="trial_duration",  data=temp_pd_nb_bits_ATM_bySplit_edges,
                   hue="trial_duration", palette=palette, dodge=False, ax=ax, size=3)
@@ -604,21 +557,14 @@ for frequency in list_freq:
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.legend_.remove()
-    plt.savefig(path_figures_root + "Prova1_Paper_TrialDurationEffect_BySplit_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
+    plt.savefig(path_figures_root + "TrialDurationEffect_BySplit_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
     plt.savefig(
-        path_figures_root + "Prova1_Paper_TrialDurationEffect_BySplit_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits" + str(
+        path_figures_root + "TrialDurationEffect_BySplit_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits" + str(
             nbSplit) + "_" + frequency + ".png", dpi=300)
-    plt.savefig(path_figures_root + "Fig3_TrialDurationEffect_BySplit_"+frequency+".eps", format="eps", dpi=300)
+    plt.savefig(path_figures_root + "TrialDurationEffect_BySplit_"+frequency+".eps", format="eps", dpi=300)
     plt.close('all')
 
     temp_pd_nb_bits_ATM_byTrialPerm_edges = pd_nb_bits_ATM_byTrialPerm_edges[pd_nb_bits_ATM_byTrialPerm_edges["freq"]==frequency]
-    # g = sns.catplot(y="test_accuracy",
-    #                 x='trial_duration',
-    #                 height=4, aspect=3, s=2,
-    #                 palette = 'colorblind',
-    #                 data=pd_nb_bits_ATM_byTrialPerm_edges)
-    # plt.savefig(path_figures_root + "Paper_TrialDurationEffect_ByTrialPerm_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
-
 
     sns.set_style('white')
     palette = 'Blues'
@@ -632,8 +578,6 @@ for frequency in list_freq:
         x0, y0, width, height = bbox.bounds
         violin.set_clip_path(plt.Rectangle((x0, y0), width / 2, height, transform=ax.transData))
 
-    #sns.boxplot(y="test_accuracy", x="trial_duration", data=pd_nb_bits_ATM_byTrialPerm_edges, saturation=1, showfliers=False,
-     #             width=0.3, boxprops={'zorder': 3, 'facecolor': 'none'}, ax=ax)
     old_len_collections = len(ax.collections)
     sns.stripplot(y="test_accuracy", x="trial_duration",  data=pd_nb_bits_ATM_byTrialPerm_edges,
                   hue="trial_duration", palette=palette, dodge=False, ax=ax, size=3)
@@ -642,80 +586,12 @@ for frequency in list_freq:
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.legend_.remove()
-    plt.savefig(path_figures_root + "Prova1_Paper_TrialDurationEffect_ByTrialPerm_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
+    plt.savefig(path_figures_root + "TrialDurationEffect_ByTrialPerm_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
     plt.savefig(
-        path_figures_root + "Prova1_Paper_TrialDurationEffect_ByTrialPerm_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits" + str(
+        path_figures_root + "TrialDurationEffect_ByTrialPerm_HC_EP1_ATM_SVM_Classification_edges-2class-nbSplits" + str(
             nbSplit) + "_" + frequency + ".png", dpi=300)
-    plt.savefig(path_figures_root + "Fig3_TrialDurationEffect_ByTrialPerm_"+frequency+".eps", format="eps", dpi=300)
+    plt.savefig(path_figures_root + "TrialDurationEffect_ByTrialPerm_"+frequency+".eps", format="eps", dpi=300)
     plt.close('all')
-
-    temp_pd_nb_bits_ImCoh_bySplit_edges = pd_nb_bits_ImCoh_bySplit_edges[pd_nb_bits_ImCoh_bySplit_edges["freq"]==frequency]
-    # g = sns.catplot(y="test_accuracy",
-    #                 x='trial_duration',
-    #                 height=4, aspect=3, s=2,
-    #                 palette = 'colorblind',
-    #                 data=temp_pd_nb_bits_ImCoh_bySplit_edges)
-    # plt.savefig(path_figures_root + "Paper_TrialDurationEffect_BySplit_HC_EP1_ImCoh_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
-
-
-    sns.set_style('white')
-    palette = 'Blues'
-    ax = sns.violinplot(y="test_accuracy", x="trial_duration", data=temp_pd_nb_bits_ImCoh_bySplit_edges, hue="trial_duration", dodge=False,
-                        palette=palette,
-                        scale="width", inner=None)
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
-    for violin in ax.collections:
-        bbox = violin.get_paths()[0].get_extents()
-        x0, y0, width, height = bbox.bounds
-        violin.set_clip_path(plt.Rectangle((x0, y0), width / 2, height, transform=ax.transData))
-
-    # sns.boxplot(y="test_accuracy", x="trial_duration", data=temp_pd_nb_bits_ImCoh_bySplit_edges, saturation=1, showfliers=False,
-    #              width=0.3, boxprops={'zorder': 3, 'facecolor': 'none'}, ax=ax)
-    old_len_collections = len(ax.collections)
-    sns.stripplot(y="test_accuracy", x="trial_duration",  data=temp_pd_nb_bits_ImCoh_bySplit_edges,
-                  hue="trial_duration", palette=palette, dodge=False, ax=ax, size=3)
-    for dots in ax.collections[old_len_collections:]:
-        dots.set_offsets(dots.get_offsets() + np.array([0.18, 0]))
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.legend_.remove()
-    plt.savefig(path_figures_root + "Prova1_Paper_TrialDurationEffect_BySplit_HC_EP1_ImCoh_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
-    plt.savefig(path_figures_root + "Fig3_ImCoh_TrialDurationEffect_BySplit_"+frequency+".eps", format="eps", dpi=300)
-
-    # temp_pd_nb_bits_ImCoh_byTrialPerm_edges = pd_nb_bits_ImCoh_byTrialPerm_edges[pd_nb_bits_ImCoh_byTrialPerm_edges["freq"]==frequency]
-    # g = sns.catplot(y="test_accuracy",
-    #                 x='trial_duration',
-    #                 height=4, aspect=3, s=2,
-    #                 palette = 'colorblind',
-    #                 data=pd_nb_bits_ImCoh_byTrialPerm_edges)
-    # plt.savefig(path_figures_root + "Paper_TrialDurationEffect_ByTrialPerm_HC_EP1_ImCoh_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
-
-
-    sns.set_style('white')
-    palette = 'Blues'
-    ax = sns.violinplot(y="test_accuracy", x="trial_duration", data=pd_nb_bits_ImCoh_byTrialPerm_edges, hue="trial_duration", dodge=False,
-                        palette=palette,
-                        scale="width", inner=None)
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
-    for violin in ax.collections:
-        bbox = violin.get_paths()[0].get_extents()
-        x0, y0, width, height = bbox.bounds
-        violin.set_clip_path(plt.Rectangle((x0, y0), width / 2, height, transform=ax.transData))
-
-    # sns.boxplot(y="test_accuracy", x="trial_duration", data=pd_nb_bits_ImCoh_byTrialPerm_edges, saturation=1, showfliers=False,
-    #              width=0.3, boxprops={'zorder': 3, 'facecolor': 'none'}, ax=ax)
-    old_len_collections = len(ax.collections)
-    sns.stripplot(y="test_accuracy", x="trial_duration",  data=pd_nb_bits_ImCoh_byTrialPerm_edges,
-                  hue="trial_duration", palette=palette, dodge=False, ax=ax, size=3)
-    for dots in ax.collections[old_len_collections:]:
-        dots.set_offsets(dots.get_offsets() + np.array([0.18, 0]))
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.legend_.remove()
-    plt.savefig(path_figures_root + "Prova1_Paper_TrialDurationEffect_ByTrialPerm_HC_EP1_ImCoh_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
-    plt.savefig(path_figures_root + "Fig3_ImCoh_TrialDurationEffect_ByTrialPerm_"+frequency+".eps", format="eps", dpi=300)
 
 #%% Supplementary - ATM & ImCoh - Features study - Narrow band
 nbSplit = 50
@@ -830,142 +706,3 @@ for f in freqbands:
         format="eps",
         dpi=600,
         facecolor='white')
-#%% Supplementary - ImCoh - Temporal scale
-opt_trial_duration= [15, 30, 60, 120, 180, 300] # 5 not done
-
-results_trial_dur= pd.read_csv(path_csv_root + "/SVM/TrialDurationEffect_HC_EP1_IndivOpt_ImCoh_Classification-allnode-2class-" +
-        '-nbSplit' + str(nbSplit) + ".csv"
-             )
-results_imcoh_edges = results_trial_dur[results_trial_dur["pipeline"] == "ImCoh+SVM"]
-
-# study by split
-lst = list()
-lst_nodal = list()
-for f in freqbands:
-    fmin = freqbands[f][0]
-    fmax = freqbands[f][1]
-    results_imcoh_edges_f= results_imcoh_edges[results_imcoh_edges["freq"] == str(fmin)+'-'+str(fmax)]
-    # for a given duration: for each split, median over all the possible combinations of trial
-    for kk_trial_crop in opt_trial_duration:
-        temp_results_imcoh_edges_trial_dur = results_imcoh_edges_f[results_imcoh_edges_f["trial-duration"]==kk_trial_crop]
-        for kk_split in range(nbSplit):
-            temp_res_imcoh_edges = temp_results_imcoh_edges_trial_dur[temp_results_imcoh_edges_trial_dur["split"]==kk_split]
-            score_edges = temp_res_imcoh_edges["test_accuracy"].median()
-            trial_duration_edges = temp_res_imcoh_edges["trial-duration"].unique()[0]
-            freq_edges = temp_res_imcoh_edges["freq"].unique()[0]
-            lst.append([score_edges, kk_split, freq_edges, trial_duration_edges])
-
-cols = ["test_accuracy", "split", "freq", "trial_duration"]
-pd_nb_bits_ImCoh_bySplit_edges = pd.DataFrame(lst, columns=cols)
-
-# study by perm for a given definition of the trial
-lst = list()
-lst_nodal = list()
-num_perm=100
-for f in freqbands:
-    fmin = freqbands[f][0]
-    fmax = freqbands[f][1]
-    results_imcoh_edges_f= results_imcoh_edges[results_imcoh_edges["freq"] == str(fmin)+'-'+str(fmax)]
-
-    # for a given duration: for each split, median over all the possible combinations of trial
-    for kk_trial_crop in opt_trial_duration:
-        temp_results_imcoh_edges_trial_dur = results_imcoh_edges_f[results_imcoh_edges_f["trial-duration"]==kk_trial_crop]
-
-        for kk_trial_perm in range(num_perm):
-            temp_res_imcoh_edges = temp_results_imcoh_edges_trial_dur[temp_results_imcoh_edges_trial_dur["trial-permutation"]==kk_trial_perm]
-            score_edges = temp_res_imcoh_edges["test_accuracy"].median()
-            trial_duration_edges = temp_res_imcoh_edges["trial-duration"].unique()[0]
-            freq_edges = temp_res_imcoh_edges["freq"].unique()[0]
-            lst.append([score_edges, kk_trial_perm, freq_edges, trial_duration_edges])
-
-cols = ["test_accuracy", "trial-permutation", "freq", "trial_duration"]
-pd_nb_bits_ImCoh_byTrialPerm_edges = pd.DataFrame(lst, columns=cols)
-
-# plot results
-list_freq=pd_nb_bits_ImCoh_bySplit_edges["freq"].unique()
-plt.style.use("classic")
-for frequency in list_freq:
-    temp_pd_nb_bits_ImCoh_bySplit_edges = pd_nb_bits_ImCoh_bySplit_edges[pd_nb_bits_ImCoh_bySplit_edges["freq"]==frequency]
-    g = sns.catplot(y="test_accuracy",
-                    x='trial_duration',
-                    height=4, aspect=3, s=2,
-                    palette = 'colorblind',
-                    data=temp_pd_nb_bits_ImCoh_bySplit_edges)
-    plt.savefig(path_figures_root + "SI_TrialDurationEffect_BySplit_HC_EP1_imcoh_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
-
-    temp_pd_nb_bits_ImCoh_byTrialPerm_edges = pd_nb_bits_ImCoh_byTrialPerm_edges[pd_nb_bits_ImCoh_byTrialPerm_edges["freq"]==frequency]
-    g = sns.catplot(y="test_accuracy",
-                    x='trial_duration',
-                    height=4, aspect=3, s=2,
-                    palette = 'colorblind',
-                    data=pd_nb_bits_ImCoh_byTrialPerm_edges)
-    plt.savefig(path_figures_root + "SI_TrialDurationEffect_ByTrialPerm_HC_EP1_imcoh_SVM_Classification_edges-2class-nbSplits"+str(nbSplit)+"_"+frequency+".pdf", dpi=300)
-
-
-#%% TODO - supplementary ? - features importance values
-nbSplit = 50
-freqbands = {'theta': [3, 8],
-             'alpha': [8, 14],
-             'theta-alpha': [3, 14],  # Epilepsy case
-             'paper': [3, 40]}
-
-path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/Fenicotteri-equilibristi/Figures/Classification/"
-
-labels = pd.read_csv(path_csv_root + "LabelsDesikanAtlas.csv")
-df_weights_estim_ImCoh_nodal = dict()
-df_weights_estim_ImCoh_edges = dict()
-df_weights_estim_ImCoh_edges_nodal = dict()
-df_weights_estim_ATM_nodal = dict()
-df_weights_estim_ATM_edges = dict()
-df_weights_estim_ATM_edges_nodal = dict()
-df_weights_estim_ATM_ImCoh_edges_nodal = dict()
-
-index_values = labels.values
-column_values = labels.values
-
-for f in freqbands:
-    fmin = freqbands[f][0]
-    fmax = freqbands[f][1]
-
-    temp = pd.read_csv(path_csv_root + "/SVM/ImCoh_nodal_weights_HC_EP1_SVM_Classification" + "-freq-" + str(
-        fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv")
-    weights_estim_ImCoh_nodal = temp["median"]
-    df_weights_estim_ImCoh_nodal[f] = pd.DataFrame(data = weights_estim_ImCoh_nodal)
-    temp2 = pd.read_csv(path_csv_root + "/SVM/ImCoh_edges_weights_HC_EP1_SVM_Classification" + "-freq-" + str(
-        fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv")
-    weights_estim_ImCoh_edges = np.array(temp2["median"]).reshape(68,68)
-    df_weights_estim_ImCoh_edges[f] = pd.DataFrame(data = weights_estim_ImCoh_edges,
-                                              index=index_values,
-                                              columns=column_values)
-
-    weights_estim_ImCoh_edges_nodal = np.mean(weights_estim_ImCoh_edges, 1)
-    df_weights_estim_ImCoh_edges_nodal[f] = pd.DataFrame(data = weights_estim_ImCoh_edges_nodal,
-                                              index=index_values,
-                                              columns=["ROIs-ImCoh"])
-
-    temp3 = pd.read_csv(
-        path_csv_root + "/SVM/Features and co/ATM_nodal_weights_FeaturesInfos_HC_EP1_SVM_Classification" + "-freq-" + str(
-            fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv")
-    weights_estim_ATM_nodal = temp3["median"]
-    df_weights_estim_ATM_nodal[f] = pd.DataFrame(data = weights_estim_ATM_nodal)
-
-    temp4 = pd.read_csv(
-        path_csv_root + "/SVM/Features and co/ATM_edges_weights_FeaturesInfos_HC_EP1_SVM_Classification" + "-freq-" + str(
-            fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv")
-    weights_estim_ATM_edges = np.array(temp4["median"]).reshape(68,68)
-    df_weights_estim_ATM_edges[f] = pd.DataFrame(data = weights_estim_ATM_edges,
-                                              index=index_values,
-                                              columns=column_values)
-
-    weights_estim_ATM_edges_nodal = np.mean(weights_estim_ATM_edges,1)
-    df_weights_estim_ATM_edges_nodal[f] = pd.DataFrame(data = weights_estim_ATM_edges_nodal,
-                                              index=index_values,
-                                              columns=["ROIs-ATM"])
-
-    df_weights_estim_ImCoh_edges_nodal[f].reset_index(drop=True, inplace=True)
-    df_weights_estim_ATM_edges_nodal[f].reset_index(drop=True, inplace=True)
-    df_weights_estim_ATM_ImCoh_edges_nodal[f] = pd.concat((df_weights_estim_ImCoh_edges_nodal[f] , df_weights_estim_ATM_edges_nodal[f]), axis=1)
-    df_weights_estim_ATM_ImCoh_edges_nodal[f].index=index_values
-
-
-df_weights_estim_ATM_ImCoh_edges_nodal[f].to_csv(path_csv_root+'Mean_df_weights_estim_ATM_ImCoh_edges_nodal_broad.csv')
