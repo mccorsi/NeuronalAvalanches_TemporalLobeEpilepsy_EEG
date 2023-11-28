@@ -1,4 +1,4 @@
-# NeuronalAvalanches_TemporalLobeEpilepsy_EEG
+# Automated classification of temporal lobe epilepsy using neuronal avalanches: a noninvasive investigation via resting state EEG
 
 
 ---
