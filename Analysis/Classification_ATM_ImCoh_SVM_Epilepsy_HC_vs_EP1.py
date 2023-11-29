@@ -241,3 +241,148 @@ for f in freqbands:
             path_csv_root + "/SVM/HC_EP1_IndivOpt_ATM_ImCoh_Comparison_SVM_Classification-allnode-2class-" +
             "-freq-" + str(fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv"
         )
+    
+#%% Identify the best configuration for each case and save the results
+results=pd.DataFrame()
+
+for f in freqbands:
+    fmin = freqbands[f][0]
+    fmax = freqbands[f][1]
+    temp_results = pd.read_csv(         path_csv_root + "/SVM/HC_EP1_IndivOpt_ATM_ImCoh_Comparison_SVM_Classification-allnode-2class-" +
+            "-freq-" + str(fmin) + '-' + str(fmax) + '-nbSplit' + str(nbSplit) + ".csv"
+             )
+
+    results = pd.concat((results, temp_results))
+
+results_theta_alpha=results[results["freq"]=='3-14']
+results_theta_alpha_ImCoh=results_theta_alpha[results_theta_alpha["pipeline"]=="ImCoh+SVM"]
+results_theta_alpha_ImCoh_nodal=results_theta_alpha[results_theta_alpha["pipeline"]=="ImCoh+SVM-nodal"]
+results_theta_alpha_atm=results_theta_alpha[results_theta_alpha["pipeline"]=="ATM+SVM"]
+results_theta_alpha_atm_nodal=results_theta_alpha[results_theta_alpha["pipeline"]=="ATM+SVM-nodal"]
+
+results_broad=results[results["freq"]=='3-40']
+results_broad_ImCoh=results_broad[results_broad["pipeline"]=="ImCoh+SVM"]
+results_broad_ImCoh_nodal=results_broad[results_broad["pipeline"]=="ImCoh+SVM-nodal"]
+results_broad_atm=results_broad[results_broad["pipeline"]=="ATM+SVM"]
+results_broad_atm_nodal=results_broad[results_broad["pipeline"]=="ATM+SVM-nodal"]
+
+df_res_opt_broad = pd.DataFrame()
+df_res_opt_broad_nodal = pd.DataFrame()
+temp_cfg_opt_broad = pd.DataFrame()
+temp_cfg_opt_broad_nodal = pd.DataFrame()
+df_broad_nodal = pd.DataFrame()
+df_res_opt_theta_alpha_nodal = pd.DataFrame()
+temp_cfg_opt_theta_alpha_nodal = pd.DataFrame()
+
+df_broad = pd.DataFrame()
+df_theta_alpha = pd.DataFrame()
+df_broad_nodal = pd.DataFrame()
+df_theta_alpha_nodal = pd.DataFrame()
+
+df_res_opt_theta_alpha_median = pd.DataFrame()
+df_res_opt_broad_median = pd.DataFrame()
+
+df_res_opt_theta_alpha_median_nodal = pd.DataFrame()
+df_res_opt_broad_median_nodal = pd.DataFrame()
+
+for kk_zthresh in opt_zthresh:
+    for kk_val_duration in opt_val_duration:
+        temp_data_broad = results_broad_atm.loc[(results_broad_atm["zthresh"]==kk_zthresh) &
+                                         (results_broad_atm["val_duration"]==kk_val_duration)]
+        median_value=temp_data_broad["test_accuracy"].median()
+
+        idx_dummy = temp_data_broad["test_accuracy"].idxmin()
+        temp_df_broad = temp_data_broad[temp_data_broad.index.isin([idx_dummy])]
+        temp_df_broad.loc[idx_dummy, 'test_accuracy'] = median_value
+
+        df_broad = pd.concat((df_broad, temp_df_broad), ignore_index=True)
+
+        #nodal
+        temp_data_broad_nodal = results_broad_atm_nodal.loc[(results_broad_atm_nodal["zthresh"]==kk_zthresh) &
+                                         (results_broad_atm_nodal["val_duration"]==kk_val_duration)]
+        median_value=temp_data_broad_nodal["test_accuracy"].median()
+
+        idx_dummy = temp_data_broad_nodal["test_accuracy"].idxmin()
+        temp_df_broad_nodal = temp_data_broad_nodal[temp_data_broad_nodal.index.isin([idx_dummy])]
+        temp_df_broad_nodal.loc[idx_dummy, 'test_accuracy'] = median_value
+
+        df_broad_nodal = pd.concat((df_broad_nodal, temp_df_broad_nodal), ignore_index=True)
+
+
+        temp_data_theta_alpha = results_theta_alpha_atm.loc[(results_theta_alpha_atm["zthresh"]==kk_zthresh) &
+                                       (results_theta_alpha_atm["val_duration"]==kk_val_duration)]
+        median_value=temp_data_theta_alpha["test_accuracy"].median()
+
+        idx_dummy = temp_data_theta_alpha["test_accuracy"].idxmin()
+        temp_df_theta_alpha = temp_data_theta_alpha[temp_data_theta_alpha.index.isin([idx_dummy])]
+        temp_df_theta_alpha.loc[idx_dummy, 'test_accuracy'] = median_value
+
+        df_theta_alpha = pd.concat((df_theta_alpha, temp_df_theta_alpha), ignore_index=True)
+
+        # nodal
+        temp_data_theta_alpha_nodal = results_theta_alpha_atm_nodal.loc[(results_theta_alpha_atm_nodal["zthresh"]==kk_zthresh) &
+                                       (results_theta_alpha_atm_nodal["val_duration"]==kk_val_duration)]
+        median_value=temp_data_theta_alpha_nodal["test_accuracy"].median()
+
+        idx_dummy = temp_data_theta_alpha_nodal["test_accuracy"].idxmin()
+        temp_df_theta_alpha_nodal = temp_data_theta_alpha_nodal[temp_data_theta_alpha_nodal.index.isin([idx_dummy])]
+        temp_df_theta_alpha_nodal.loc[idx_dummy, 'test_accuracy'] = median_value
+
+        df_theta_alpha_nodal = pd.concat((df_theta_alpha_nodal, temp_df_theta_alpha_nodal), ignore_index=True)
+
+max_score_broad=df_broad["test_accuracy"].max()
+idx_max_score_broad=df_broad["test_accuracy"].idxmax()
+temp_cfg_opt_broad = df_broad[df_broad.index.isin([idx_max_score_broad])]
+df_res_opt_broad = pd.concat((df_res_opt_broad, temp_cfg_opt_broad))
+
+max_score_theta_alpha=df_theta_alpha["test_accuracy"].max()
+idx_max_score_theta_alpha=df_theta_alpha["test_accuracy"].idxmax()
+temp_cfg_opt_theta_alpha = df_theta_alpha[df_theta_alpha.index.isin([idx_max_score_theta_alpha])]
+
+max_score_broad_nodal=df_broad_nodal["test_accuracy"].max()
+idx_max_score_broad_nodal=df_broad_nodal["test_accuracy"].idxmax()
+temp_cfg_opt_broad_nodal = df_broad_nodal[df_broad_nodal.index.isin([idx_max_score_broad_nodal])]
+df_res_opt_broad_nodal = pd.concat((df_res_opt_broad_nodal, temp_cfg_opt_broad_nodal))
+
+max_score_theta_alpha_nodal=df_theta_alpha_nodal["test_accuracy"].max()
+idx_max_score_theta_alpha_nodal=df_theta_alpha_nodal["test_accuracy"].idxmax()
+temp_cfg_opt_theta_alpha_nodal = df_theta_alpha_nodal[df_theta_alpha_nodal.index.isin([idx_max_score_theta_alpha_nodal])]
+df_res_opt_theta_alpha_nodal = pd.concat((df_res_opt_theta_alpha_nodal, temp_cfg_opt_theta_alpha_nodal))
+
+idx_dummy = temp_cfg_opt_theta_alpha["test_accuracy"].idxmin()
+median_theta_alpha = temp_cfg_opt_theta_alpha[temp_cfg_opt_theta_alpha.index.isin([idx_dummy])]
+median_theta_alpha.loc[idx_dummy, 'test_accuracy'] = temp_cfg_opt_theta_alpha["test_accuracy"].median()
+df_res_opt_theta_alpha_median = pd.concat((df_res_opt_theta_alpha_median, median_theta_alpha))
+
+idx_dummy = temp_cfg_opt_broad_nodal["test_accuracy"].idxmin()
+median_broad_nodal = temp_cfg_opt_broad_nodal[temp_cfg_opt_broad_nodal.index.isin([idx_dummy])]
+median_broad_nodal.loc[idx_dummy, 'test_accuracy'] = temp_cfg_opt_broad_nodal["test_accuracy"].median()
+df_res_opt_broad_median_nodal = pd.concat((df_res_opt_broad_median_nodal, median_broad_nodal))
+
+idx_dummy = temp_cfg_opt_theta_alpha_nodal["test_accuracy"].idxmin()
+median_theta_alpha_nodal = temp_cfg_opt_theta_alpha_nodal[temp_cfg_opt_theta_alpha_nodal.index.isin([idx_dummy])]
+median_theta_alpha_nodal.loc[idx_dummy, 'test_accuracy'] = temp_cfg_opt_theta_alpha_nodal["test_accuracy"].median()
+df_res_opt_theta_alpha_median_nodal = pd.concat((df_res_opt_theta_alpha_median_nodal, median_theta_alpha_nodal))
+
+df_res_opt_broad.to_csv(
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_Broabroadand.csv"
+)
+df_res_opt_broad_median.to_csv(
+    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_Broabroadand.csv"
+)
+df_res_opt_theta_alpha_median.to_csv(
+    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_theta_alphaBand.csv"
+)
+
+df_res_opt_broad_nodal.to_csv(
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_Broabroadand.csv"
+)
+df_res_opt_broad_median_nodal.to_csv(
+    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_Broabroadand.csv"
+)
+df_res_opt_theta_alpha_nodal.to_csv(
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_theta_alphaBand.csv"
+)
+df_res_opt_theta_alpha_median_nodal.to_csv(
+    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_theta_alphaBand.csv"
+)
