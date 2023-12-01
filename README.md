@@ -38,7 +38,7 @@ In 'requirements.txt' a list of all the Python dependencies is proposed to plot 
 ### Figure 2 - Accuracy and receiver operating characteristic curves
 ![Fig. 2](./Figures_paper/Fig2.png)
 
-*A. Full distribution of the classification accuracy of the support vector machine (SVM) model across the cross-validation splits when trained with avalanche transition matrix (ATM) and imaginary coherence (ImCoh). On the left the accuracy classification using narrow-band filtered signal (3-14 Hz) and on right broadband signal (3-40 Hz). B. Mean receiver operating characteristic (ROC) curves across cross-validation splits and the corresponding area under the curve (AUC), both for ATM (orange line) and ImCoh (purple line).*
+*A. Full distribution of the classification accuracy of the support vector machine (SVM) model across the cross-validation splits when trained with avalanche transition matrix (ATM) and imaginary coherence (ImCoh). On the left the accuracy classification using narrow-band filtered signal (3-14 Hz) and on right broadband signal (3-40 Hz). B. Mean receiver operating characteristic (ROC) curves across cross-validation splits and the corresponding area under the curve (AUC), both for ATM (salmon line) and ImCoh (purple line).*
 
 
 ### Figure 3 - Feature importance for model interpretability
