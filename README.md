@@ -4,21 +4,31 @@
 ---
 This repository contains the code and supporting documents associated with the following manuscript:
 
-XXXXXXXXX, XXXXXX, XXXXXX and XXXXXX (2023). Automated classification of temporal lobe epilepsy using neuronal avalanches: a noninvasive investigation via resting state EEG. Biorxiv. LINK DA AGGIUNGERE
+Marie-Constance Corsi, Emahnuel Trois Lopez, Pierpaolo Sorrentino, Alberto Danieli, Simone Cuozzo, Paolo Bonanni, and Gian Marco Duma (2023). Neuronal avalanches in temporal lobe epilepsy as a diagnostic tool: a noninvasive investigation of intrinsic resting state dynamics. MedRxiv. https://www.medrxiv.org/content/10.1101/2023.12.06.23299589v1 
+
 
  
 ---
 ## Authors:
-* Gian Marco Duma
-* Emahnuel Troisi Lopez
-* [Marie-Constance Corsi](https://marieconstance-corsi.netlify.app), Inria Paris, Paris Brain Institute, Sorbonne Université
-* [Pierpaolo Sorrentino](https://scholar.google.nl/citations?user=T1k8qBsAAAAJ&hl=en), Institut de Neuroscience des Systèmes, Aix-Marseille University
-* 
+* [Marie-Constance Corsi](https://marieconstance-corsi.netlify.app), Inria Paris, Paris Brain Institute, Sorbonne Université, France
+* [Emahnuel Troisi Lopez](https://scholar.google.com/citations?user=1xfuS4oAAAAJ&hl=it), Institute of Applied Sciences and Intelligent Systems of National Research Council, Pozzuoli, Italy
+* [Pierpaolo Sorrentino](https://scholar.google.nl/citations?user=T1k8qBsAAAAJ&hl=en), Institut de Neuroscience des Systèmes, Aix-Marseille University & University of Sassari, Department of Biomedical Sciences, Sassari, Italy
+* Alberto Danieli, IRCCS E. Medea Scientific Institute, Epilepsy Unit, Treviso, Italy
+* Simone Cuozzo, IRCCS E. Medea Scientific Institute, Epilepsy Unit, Treviso, Italy
+* Paolo Bonanni, IRCCS E. Medea Scientific Institute, Epilepsy Unit, Treviso, Italy
+* [Gian Marco Duma](https://scholar.google.ca/citations?user=EFlCo6EAAAAJ&hl=it), IRCCS E. Medea Scientific Institute, Epilepsy Unit, Treviso, Italy
 
 
 ---
 ## Abstract
-TODO
+
+*Background and Objectives:* The epilepsy diagnosis still represents a complex process, with misdiagnosis reaching 40%. Here, we aimed at building an automatable workflow, to help the clinicians in the diagnostic process, differentiating between controls and a population of patients with temporal lobe epilepsy (TLE). While primarily interested in correctly classifying the participants, we used data features providing hints on the underlying pathophysiological processes. Specifically, we hypothesized that neuronal avalanches (NA) may represent a feature that encapsulates the rich brain dynamics better than the classically used functional connectivity measures (Imaginary Coherence; ImCoh).
+
+*Methods:* We recorded 10 minutes of resting state activity with high-density scalp electroencephalography (hdEEG; 128 channels). We analyzed large-scale activation bursts (NA) from source activation, to capture altered dynamics. Then, we used machine-learning algorithms to classify epilepsy patients vs. controls, and we described the goodness of the classification as well as the effect of the durations of the data segments on the performance.
+
+*Results:* Using a support vector machine (SVM), we reached a classification accuracy of 0.87 ± 0.10 (SD) and an area under the curve (AUC) of 0.94 ± 0.06. The use of avalanches-derived features, generated a mean increase of 16% in the accuracy of diagnosis prediction, compared to ImCoh. Investigating the main features informing the model, we observed that the dynamics of the entorhinal cortex, superior and inferior temporal gyri, cingulate cortex and prefrontal dorsolateral cortex were informing the model with NA. Finally, we studied the time-dependent accuracy in the classification. While the classification performance grows with the duration of the data length, there are specific lengths, at 30s and 180s at which the classification performance becomes steady, with intermediate lengths showing greater variability. Classification accuracy reached a plateau at 5 minutes of recording.
+
+*Discussion:* We showed that NA represents a better EEG feature for an automated epilepsy identification, being related with neuronal dynamics of pathology-relevant brain areas. Furthermore, the presence of specific durations and the performance plateau might be interpreted as the manifestation of the specific intrinsic neuronal timescales altered in epilepsy. The study represents a potentially automatable and noninvasive workflow aiding the clinicians in the diagnosis.
 
 
 ## Code
