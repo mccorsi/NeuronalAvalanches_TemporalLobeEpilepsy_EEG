@@ -1,7 +1,7 @@
 # %%
 """
 ==============================================================
-Plot ROC curves from ATM/ImCoh classification averaged across CV splits
+Attempt to classify MEG data in the source space - neuronal avalanches vs classical approaches - Plot ROC curves - Rebuttal analysis
 ===============================================================
 
 """
@@ -9,19 +9,25 @@ Plot ROC curves from ATM/ImCoh classification averaged across CV splits
 #
 # License: BSD (3-clause)
 
-import gzip
-
-import mat73
-import matplotlib.pyplot as plt
-
-import numpy as np
 
 import os.path as osp
 import os
-import pandas as pd
-import pickle
 
-from scipy.stats import zscore
+import scipy.stats
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+import pandas as pd
+import mat73
+
+from tqdm import tqdm
+import gzip
+import pickle
+import mne
+from mne.connectivity import spectral_connectivity
+from mne import create_info, EpochsArray
+from mne.decoding import CSP as CSP_MNE
+from mne.connectivity import spectral_connectivity
 
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
@@ -30,13 +36,20 @@ from sklearn.model_selection import ShuffleSplit, cross_val_score
 from sklearn.model_selection import cross_validate
 from sklearn.metrics import confusion_matrix, RocCurveDisplay, auc
 
-# to compute ImCoh estimations for each trial
-from Analysis.fc_pipeline import FunctionalTransformer
+import numpy as np
+from scipy.stats import zscore
+from moabb.paradigms import MotorImagery
 
-# %% to be adapted
+# to compute ImCoh estimations for each trial
+from Scripts.py_viz.fc_pipeline import FunctionalTransformer
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# %%
 if os.path.basename(os.getcwd()) == "NeuronalAvalanches_TemporalLobeEpilepsy_EEG":
     os.chdir("Database/1_Clinical/Epilepsy_GMD/")
-if os.path.basename(os.getcwd()) == "py_viz":
+if os.path.basename(os.getcwd()) == "Analysis":
     os.chdir("/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD")
 basedir = os.getcwd()
 
@@ -48,7 +61,9 @@ if not osp.exists(path_data_root):
     os.mkdir(path_data_root)
 path_data_root_chan = os.getcwd()
 
+
 path_figures_root = "/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Figures/Classification/"
+
 
 # %% functions
 
@@ -76,12 +91,10 @@ def Transprob(ZBIN, nregions, val_duration):
     mat = mat / ifi
     return mat, aout
 
-
 def threshold_mat(data, thresh=3):
     current_data = data
     binarized_data = np.where(np.abs(current_data) > thresh, 1, 0)
     return (binarized_data)
-
 
 def find_avalanches(data, thresh=3, val_duration=2):
     binarized_data = threshold_mat(data, thresh=thresh)
@@ -96,7 +109,6 @@ def find_avalanches(data, thresh=3, val_duration=2):
         n = len(s)
         list_avalanches_bysize[n].append(s)
     return (aout, min_size, max_size, list_avalanches_bysize, mat)
-
 
 def confusion_matrix_scorer(clf,X,y):
     y_pred = clf.predict(X)
@@ -127,31 +139,54 @@ svm = GridSearchCV(SVC(), {"kernel": ("linear", "rbf"), "C": [0.1, 1, 10]}, cv=5
 cv = ShuffleSplit(nbSplit, test_size=0.2, random_state=21)
 
 # %% parameters to be applied to extract the features
-freqbands = {'theta-alpha': [3, 14],  # Epilepsy case
-             'paper': [3, 40]}
+freqbands = {'paper': [3,40],
+             'theta-alpha': [3,14],
+             'alpha-beta': [8, 30],  # requested by the reviewer
+             'theta-alpha-beta': [3, 30],  # requested by the reviewer
+             'beta-gamma': [14, 40],  # requested by the reviewer
+             }
 
 opt_trial_duration = [100864/256] # one single trial for everything
 fs = 256
 
-test=mat73.loadmat('/Users/marieconstance.corsi/Documents/GitHub/NeuronalAvalanches_TemporalLobeEpilepsy_EEG/Database/1_Clinical/Epilepsy_GMD/Data_Epi_MEG_4Classif_concat_NoTrials.mat')
+test=mat73.loadmat(path_data_root + '1_Clinical/Epilepsy_GMD/Data_Epi_MEG_4Classif_concat_NoTrials.mat')
 ch_names = test['labels_AAL1']
 ch_types = ["eeg" for i in range(np.shape(ch_names)[0])]
+
 
 #%% retrieve optimal parameters, for each freq band [zthresh, aval_dur]
 opt_atm_param_edge = dict()
 perf_opt_atm_param_edge = dict()
 
 df_res_opt_db=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_BroadBand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_BroadBand.csv"
 )
 opt_atm_param_edge["paper"] = [df_res_opt_db["zthresh"][0], df_res_opt_db["val_duration"][0]]
 perf_opt_atm_param_edge["paper"] = df_res_opt_db["test_accuracy"][0]
 
 df_res_opt_theta_alpha=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_theta_alphaBand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_theta_alpha_Band.csv"
 )
 opt_atm_param_edge["theta-alpha"] = [df_res_opt_theta_alpha["zthresh"][0], df_res_opt_theta_alpha["val_duration"][0]]
 perf_opt_atm_param_edge["theta-alpha"] = df_res_opt_theta_alpha["test_accuracy"][0]
+
+df_res_opt_alpha_beta=pd.read_csv(
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_alpha_beta_Band.csv"
+)
+opt_atm_param_edge["alpha-beta"] = [df_res_opt_alpha_beta["zthresh"][0], df_res_opt_alpha_beta["val_duration"][0]]
+perf_opt_atm_param_edge["alpha-beta"] = df_res_opt_alpha_beta["test_accuracy"][0]
+
+df_res_opt_beta_gamma=pd.read_csv(
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_beta_gamma_Band.csv"
+)
+opt_atm_param_edge["beta-gamma"] = [df_res_opt_beta_gamma["zthresh"][0], df_res_opt_beta_gamma["val_duration"][0]]
+perf_opt_atm_param_edge["beta-gamma"] = df_res_opt_beta_gamma["test_accuracy"][0]
+
+df_res_opt_theta_alpha_beta=pd.read_csv(
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_df_res_opt_theta_alpha_beta_Band.csv"
+)
+opt_atm_param_edge["theta-alpha-beta"] = [df_res_opt_theta_alpha_beta["zthresh"][0], df_res_opt_theta_alpha_beta["val_duration"][0]]
+perf_opt_atm_param_edge["theta-alpha-beta"] = df_res_opt_theta_alpha_beta["test_accuracy"][0]
 
 #%% classification HC vs EP1 - 31 vs 31
 grp_id_2use = ['HC', 'EPI 1']
@@ -164,20 +199,33 @@ if osp.exists(precomp_concat_name):
 else:
     print("Please consider performing precomputations and/or concatenation of the epochs!")
 
-results_atm = pd.DataFrame()
-results_ImCoh = pd.DataFrame()
-num_perm = 100
-max_time = 100864/256 # recording length
+perm_idx_filename =  path_data_root + '/Permuted_Idx_Classification.gz'
+if osp.exists(perm_idx_filename):
+    print("Loading existing permuted indices to be applied...")
+    with gzip.open(perm_idx_filename, "rb") as file:
+        perm = pickle.load(file)
+else:
+    print("Redo the previous analysis with the same permuted index file saved!")
+
+
 for f in freqbands:
+    precomp_concat_name_f = path_data_root + '/concat_epochs_HC_EP1_'+f+'.gz'
+    if osp.exists(precomp_concat_name_f):
+        print("Loading existing concatenated precomputations...")
+        with gzip.open(precomp_concat_name_f, "rb") as file:
+            epochs_concat, labels_concat = pickle.load(file)
+    else:
+        print("Please consider performing precomputations and/or concatenation of the epochs!")
+
     fmin = freqbands[f][0]
     fmax = freqbands[f][1]
-    epochs2use = epochs_concat[f].drop([2, 31, 32, 33, 34],
-                                       reason='USER')  # to have the same nb of pz/subjects and because data from the second patient may be corrupted
+
+    epochs2use=epochs_concat[f].drop([2, 31, 32, 33, 34], reason='USER') # to have the same nb of pz/subjects and because data from the second patient may be corrupted
     for iperm in range(n_perms): # in case we want to do some permutations to increase the statistical power
-        perm = rng.permutation(len(epochs2use))
-        epochs_in_permuted_order = epochs2use[perm]
+        #perm = rng.permutation(len(epochs2use))
+        epochs_in_permuted_order = epochs2use[perm[0]]
         data_shuffle = epochs_in_permuted_order.get_data()
-        label_shuffle = [labels_concat[f][x] for x in perm]
+        label_shuffle = [labels_concat[f][x] for x in perm[0]]
         nb_trials = len(data_shuffle)  # nb subjects/ pz here
         nb_ROIs = np.shape(data_shuffle)[1]
 
@@ -189,11 +237,9 @@ for f in freqbands:
         mat_ImCoh = preproc_meg.fit_transform(epochs_in_permuted_order)
 
         ImCoh_cl = np.reshape(mat_ImCoh, (nb_trials, nb_ROIs * nb_ROIs))
-        ImCoh_nodal_cl = np.sum(mat_ImCoh,1)
 
         clf_2 = Pipeline([('SVM', svm)])
         scores_ImCoh_SVM = cross_validate(clf_2, ImCoh_cl,  label_shuffle, cv=cv, n_jobs=None, scoring=scoring, return_estimator=False) # returns the estimator objects for each cv split!
-        scores_ImCoh_nodal_SVM = cross_validate(clf_2, ImCoh_nodal_cl,  label_shuffle, cv=cv, n_jobs=None, scoring=scoring, return_estimator=False) # returns the estimator objects for each cv split!
 
         # plot ROC with cross-validation - for edges only
         tprs =[]
@@ -219,24 +265,6 @@ for f in freqbands:
         mean_auc = auc(mean_fpr, mean_tpr)
         std_auc = np.std(aucs)
 
-        # concatenate ImCoh results in a dedicated dataframe
-        pd_ImCoh_SVM = pd.DataFrame.from_dict(scores_ImCoh_SVM)
-        temp_results_ImCoh = pd_ImCoh_SVM
-        ppl_ImCoh = ["ImCoh+SVM"] * len(pd_ImCoh_SVM)
-        temp_results_ImCoh["pipeline"] = ppl_ImCoh
-        temp_results_ImCoh["split"] = [nbSplit] * len(ppl_ImCoh)
-        temp_results_ImCoh["freq"] = [str(fmin) + '-' + str(fmax)] * len(ppl_ImCoh)
-
-        pd_ImCoh_nodal_SVM = pd.DataFrame.from_dict(scores_ImCoh_nodal_SVM)
-        temp_results_ImCoh_nodal = pd_ImCoh_nodal_SVM
-        ppl_ImCoh_nodal = ["ImCoh+SVM-nodal"] * len(pd_ImCoh_nodal_SVM)
-        temp_results_ImCoh_nodal["pipeline"] = ppl_ImCoh_nodal
-        temp_results_ImCoh_nodal["split"] = [nbSplit] * len(ppl_ImCoh_nodal)
-        temp_results_ImCoh_nodal["freq"] = [str(fmin) + '-' + str(fmax)] * len(ppl_ImCoh_nodal)
-
-        results_ImCoh = pd.concat((results_ImCoh, temp_results_ImCoh, temp_results_ImCoh_nodal))
-
-
         ### ATM + SVM -- attempt to optimize the code to make it faster...
         # get optimal parameters to make the process faster
         k_zthresh_edge = opt_atm_param_edge[f][0]
@@ -261,12 +289,8 @@ for f in freqbands:
         reshape_ATM = np.reshape(ATM, (np.shape(ATM)[0], np.shape(ATM)[1] * np.shape(ATM)[2]))
         fixed_reshape_ATM = np.nan_to_num(reshape_ATM, nan=0)  # replace nan by 0
         temp_ATM = np.nan_to_num(ATM, nan=0)
-        ATM_nodal = np.sum(temp_ATM, 1)
 
         scores_ATM_SVM = cross_validate(clf_2, fixed_reshape_ATM, label_shuffle, cv=cv, n_jobs=None, scoring=scoring, return_estimator=False)
-        scores_ATM_SVM_nodal = cross_validate(clf_2, ATM_nodal, label_shuffle, cv=cv, n_jobs=None,
-                                        scoring=scoring, return_estimator=False)
-
 
         # plot ROC with cross-validation - for edges only
         tprs_atm =[]

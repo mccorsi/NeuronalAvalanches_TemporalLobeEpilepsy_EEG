@@ -365,24 +365,24 @@ median_theta_alpha_nodal.loc[idx_dummy, 'test_accuracy'] = temp_cfg_opt_theta_al
 df_res_opt_theta_alpha_median_nodal = pd.concat((df_res_opt_theta_alpha_median_nodal, median_theta_alpha_nodal))
 
 df_res_opt_broad.to_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_Broabroadand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_Broabroadand.csv"
 )
 df_res_opt_broad_median.to_csv(
-    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_Broabroadand.csv"
+    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_Broabroadand.csv"
 )
 df_res_opt_theta_alpha_median.to_csv(
-    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_theta_alphaBand.csv"
+    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_theta_alphaBand.csv"
 )
 
 df_res_opt_broad_nodal.to_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_Broabroadand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-nodal_rest_Broabroadand.csv"
 )
 df_res_opt_broad_median_nodal.to_csv(
-    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_Broabroadand.csv"
+    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_Classification-nodal_rest_Broabroadand.csv"
 )
 df_res_opt_theta_alpha_nodal.to_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_theta_alphaBand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-nodal_rest_theta_alphaBand.csv"
 )
 df_res_opt_theta_alpha_median_nodal.to_csv(
-    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_theta_alphaBand.csv"
+    path_csv_root + "/SVM/Median_OptConfig_HC_EP1_MEG_ATM_SVM_Classification-nodal_rest_theta_alphaBand.csv"
 )

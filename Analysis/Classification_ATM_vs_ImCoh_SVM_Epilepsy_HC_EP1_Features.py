@@ -166,31 +166,31 @@ perf_opt_atm_param_edge = dict()
 perf_opt_atm_param_nodal = dict()
 
 df_res_opt_db=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_BroadBand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_BroadBand.csv"
 )
 opt_atm_param_edge["broad"] = [df_res_opt_db["zthresh"][0], df_res_opt_db["val_duration"][0]]
 perf_opt_atm_param_edge["broad"] = df_res_opt_db["test_accuracy"][0]
 
 df_res_opt_theta_alpha=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-allnode_rest_theta_alphaBand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-allnode_rest_theta_alphaBand.csv"
 )
 opt_atm_param_edge["theta-alpha"] = [df_res_opt_theta_alpha["zthresh"][0], df_res_opt_theta_alpha["val_duration"][0]]
 perf_opt_atm_param_edge["theta-alpha"] = df_res_opt_theta_alpha["test_accuracy"][0]
 
 df_res_opt_db_nodal=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_BroadBand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-nodal_rest_BroadBand.csv"
 )
 opt_atm_param_nodal["broad"] = [df_res_opt_db_nodal["zthresh"][0], df_res_opt_db_nodal["val_duration"][0]]
 perf_opt_atm_param_nodal["broad"] = df_res_opt_db_nodal["test_accuracy"][0]
 
 df_res_opt_theta_alpha_nodal=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_theta_alphaBand.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-nodal_rest_theta_alphaBand.csv"
 )
 opt_atm_param_nodal["theta-alpha"] = [df_res_opt_theta_alpha_nodal["zthresh"][0], df_res_opt_theta_alpha_nodal["val_duration"][0]]
 perf_opt_atm_param_nodal["theta-alpha"] = df_res_opt_theta_alpha_nodal["test_accuracy"][0]
 
 df_res_opt_theta_nodal=pd.read_csv(
-    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_ClassificationRebuttal-nodal_rest_theta_Band.csv"
+    path_csv_root + "/SVM/OptConfig_HC_EP1_MEG_ATM_SVM_Classification-nodal_rest_theta_Band.csv"
 )
 #%% Classification HC vs EP1 - 31 vs 31
 grp_id_2use = ['HC', 'EPI 1']
