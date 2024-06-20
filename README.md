@@ -1,10 +1,10 @@
-# Automated classification of temporal lobe epilepsy using neuronal avalanches: a noninvasive investigation via resting state EEG
+# Neuronal avalanches in temporal lobe epilepsy as a diagnostic tool: a noninvasive investigation of intrinsic resting state dynamics
 
 
 ---
 This repository contains the code and supporting documents associated with the following manuscript:
 
-Marie-Constance Corsi, Emahnuel Trois Lopez, Pierpaolo Sorrentino, Alberto Danieli, Simone Cuozzo, Paolo Bonanni, and Gian Marco Duma (2023). Neuronal avalanches in temporal lobe epilepsy as a diagnostic tool: a noninvasive investigation of intrinsic resting state dynamics. MedRxiv. https://www.medrxiv.org/content/10.1101/2023.12.06.23299589v1 
+Marie-Constance Corsi, Emahnuel Trois Lopez, Pierpaolo Sorrentino, Alberto Danieli, Simone Cuozzo, Paolo Bonanni, and Gian Marco Duma (2024). Neuronal avalanches in temporal lobe epilepsy as a diagnostic tool: a noninvasive investigation of intrinsic resting state dynamics. Scientific Reports. https://www.nature.com/articles/s41598-024-64870-3
 
 
  
